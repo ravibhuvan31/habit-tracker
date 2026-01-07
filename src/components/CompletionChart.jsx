@@ -4,72 +4,75 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
+  ResponsiveContainer
 } from "recharts";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
-export default function CompletionChart({ myStats, partnerStats }) {
-  const barData = [
+export default function CompletionChart({
+  myStats,
+  partnerStats,
+  userId,
+  partnerId
+}) {
+  const [myName, setMyName] = useState("You");
+  const [partnerName, setPartnerName] = useState("Partner");
+
+  useEffect(() => {
+    if (!userId) return;
+
+    async function loadNames() {
+      const userSnap = await getDoc(doc(db, "users", userId));
+      setMyName(userSnap?.data()?.name ?? "You");
+
+      if (partnerId) {
+        const partnerSnap = await getDoc(doc(db, "users", partnerId));
+        setPartnerName(partnerSnap?.data()?.name ?? "Partner");
+      }
+    }
+
+    loadNames();
+  }, [userId, partnerId]);
+
+  const data = [
     {
       name: "Completed",
-      you: myStats.completed,
-      partner: partnerStats.completed
+      [myName]: myStats.completed,
+      [partnerName]: partnerStats.completed
+    },
+    {
+      name: "Missed",
+      [myName]: myStats.notCompleted,
+      [partnerName]: partnerStats.notCompleted
     }
   ];
 
-  const pieData = [
-    { name: "Completed", value: myStats.completed },
-    { name: "Not Completed", value: myStats.notCompleted }
-  ];
-
-  const COLORS = ["#3b82f6", "#ef4444"]; // blue, red
-
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="w-full">
+      {/* 📊 Chart */}
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data}>
+          <XAxis dataKey="name" />
+          <YAxis allowDecimals={false} />
+          <Tooltip />
+          <Bar dataKey={myName} fill="#6366f1" />
+          <Bar dataKey={partnerName} fill="#22c55e" />
+        </BarChart>
+      </ResponsiveContainer>
 
-      {/* 📊 Bar Chart */}
-      <div className="h-64">
-        <h3 className="text-sm font-semibold mb-2">
-          You vs Partner
-        </h3>
+      {/* 🟣🟢 Legend */}
+      <div className="mt-4 flex justify-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded bg-indigo-500" />
+          <span>You</span>
+        </div>
 
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={barData}>
-            <XAxis dataKey="name" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="you" fill="#3b82f6" radius={[4,4,0,0]} />
-            <Bar dataKey="partner" fill="#8b5cf6" radius={[4,4,0,0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded bg-green-500" />
+          <span>{partnerName}</span>
+        </div>
       </div>
-
-      {/* 🥧 Pie Chart */}
-      <div className="h-64">
-        <h3 className="text-sm font-semibold mb-2">
-          Your Completion Ratio
-        </h3>
-
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={pieData}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={50}
-              outerRadius={80}
-            >
-              {pieData.map((_, i) => (
-                <Cell key={i} fill={COLORS[i]} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-
     </div>
   );
 }

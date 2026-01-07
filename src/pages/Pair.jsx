@@ -7,9 +7,10 @@ export default function Pair() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
   const user = auth.currentUser;
+
   if (!user) return null;
 
   const createPair = async () => {
@@ -24,9 +25,11 @@ export default function Pair() {
         userB: null
       });
 
-      await setDoc(doc(db, "users", user.uid), {
-        pairId
-      });
+      await setDoc(
+        doc(db, "users", user.uid),
+        { pairId },
+        { merge: true }
+      );
 
       navigate("/dashboard");
     } catch (err) {
@@ -63,9 +66,11 @@ export default function Pair() {
         userB: user.uid
       });
 
-      await setDoc(doc(db, "users", user.uid), {
-        pairId: code.trim()
-      });
+      await setDoc(
+        doc(db, "users", user.uid),
+        { pairId: code.trim() },
+        { merge: true }
+      );
 
       navigate("/dashboard");
     } catch (err) {
@@ -84,7 +89,6 @@ export default function Pair() {
                       border border-gray-200 dark:border-gray-800
                       rounded-xl p-6 space-y-6">
 
-        {/* 🔗 Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-1">
             Pair with a Partner
@@ -94,46 +98,30 @@ export default function Pair() {
           </p>
         </div>
 
-        {/* ❌ Error */}
         {error && (
           <div className="text-sm text-red-600 dark:text-red-400 text-center">
             {error}
           </div>
         )}
 
-        {/* ➕ Create Pair */}
-        <div className="border border-gray-200 dark:border-gray-700
-                        rounded-lg p-4 space-y-3">
+        <div className="border rounded-lg p-4 space-y-3">
           <h2 className="font-semibold">Create a new pair</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            You’ll get an invite code to share with your partner.
-          </p>
-
           <button
             onClick={createPair}
             disabled={loading}
-            className="w-full py-2 rounded
-                       bg-purple-500 hover:bg-purple-600
-                       disabled:opacity-50
-                       text-white transition"
+            className="w-full py-2 rounded bg-purple-500 hover:bg-purple-600
+                       disabled:opacity-50 text-white transition"
           >
             Create Pair
           </button>
         </div>
 
-        {/* 🔑 Join Pair */}
-        <div className="border border-gray-200 dark:border-gray-700
-                        rounded-lg p-4 space-y-3">
+        <div className="border rounded-lg p-4 space-y-3">
           <h2 className="font-semibold">Join an existing pair</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Enter the invite code shared by your partner.
-          </p>
 
           <input
-            className="w-full px-3 py-2 rounded
-                       border border-gray-300 dark:border-gray-700
-                       bg-white dark:bg-gray-800
-                       focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 rounded border
+                       bg-white dark:bg-gray-800"
             placeholder="Invite code"
             value={code}
             onChange={e => setCode(e.target.value)}
@@ -142,10 +130,8 @@ export default function Pair() {
           <button
             onClick={joinPair}
             disabled={loading}
-            className="w-full py-2 rounded
-                       bg-blue-500 hover:bg-blue-600
-                       disabled:opacity-50
-                       text-white transition"
+            className="w-full py-2 rounded bg-blue-500 hover:bg-blue-600
+                       disabled:opacity-50 text-white transition"
           >
             Join Pair
           </button>
