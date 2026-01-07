@@ -1,35 +1,71 @@
+import { getLocalDateKey } from "../utils/dateKey";
+
 export default function DayModal({ date, onClose, onSelect }) {
   if (!date) return null;
 
+  const todayKey = getLocalDateKey();
+  const selectedKey = getLocalDateKey(date);
+  const isPast = selectedKey < todayKey;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-80">
-        <h2 className="text-lg font-semibold mb-4 text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center
+                    bg-black/40 backdrop-blur-sm">
+
+      <div className="w-80 rounded-xl p-6
+                      bg-white dark:bg-gray-900
+                      border border-gray-200 dark:border-gray-800
+                      shadow-lg">
+
+        {/* 📅 Date */}
+        <h2 className="text-lg font-semibold text-center mb-1">
           {date.toDateString()}
         </h2>
 
+        <p className="text-sm text-center mb-5
+                      text-gray-600 dark:text-gray-400">
+          {isPast
+            ? "Update your previous entry"
+            : "Mark today’s task"}
+        </p>
+
+        {/* ✅ Actions */}
         <div className="flex flex-col gap-3">
           <button
-            className="bg-green-500 text-white py-2 rounded"
+            className="py-2 rounded-lg
+                       bg-blue-500 hover:bg-blue-600
+                       text-white font-medium
+                       transition"
             onClick={() => onSelect("completed")}
           >
             Completed
           </button>
 
           <button
-            className="bg-red-500 text-white py-2 rounded"
+            className="py-2 rounded-lg
+                       bg-red-500 hover:bg-red-600
+                       text-white font-medium
+                       transition"
             onClick={() => onSelect("not_completed")}
           >
             Not Completed
           </button>
 
           <button
-            className="mt-2 text-gray-500"
+            className="mt-2 text-sm
+                       text-gray-500 dark:text-gray-400
+                       hover:text-gray-700 dark:hover:text-gray-200
+                       transition"
             onClick={onClose}
           >
             Cancel
           </button>
         </div>
+
+        {/* ⌨️ Hint */}
+        <p className="mt-4 text-xs text-center
+                      text-gray-400 dark:text-gray-500">
+          Press Cancel to close
+        </p>
       </div>
     </div>
   );
