@@ -3,9 +3,16 @@ import { getLocalDateKey } from "../utils/dateKey";
 export default function DayModal({ date, onClose, onSelect }) {
   if (!date) return null;
 
-  const todayKey = getLocalDateKey();
+  const today = new Date();
+  const todayKey = getLocalDateKey(today);
   const selectedKey = getLocalDateKey(date);
+
+  const diffDays =
+    (today.setHours(0,0,0,0) - date.setHours(0,0,0,0)) /
+    (1000 * 60 * 60 * 24);
+
   const isPast = selectedKey < todayKey;
+  const isLocked = diffDays > 14;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center
@@ -23,28 +30,34 @@ export default function DayModal({ date, onClose, onSelect }) {
 
         <p className="text-sm text-center mb-5
                       text-gray-600 dark:text-gray-400">
-          {isPast
-            ? "Update your previous entry"
-            : "Mark today’s task"}
+          {isLocked
+            ? "This entry is locked (older than 14 days)"
+            : isPast
+              ? "Update your previous entry"
+              : "Mark today’s task"}
         </p>
 
         {/* ✅ Actions */}
         <div className="flex flex-col gap-3">
           <button
-            className="py-2 rounded-lg
-                       bg-blue-500 hover:bg-blue-600
-                       text-white font-medium
-                       transition"
+            disabled={isLocked}
+            className={`py-2 rounded-lg font-medium transition
+              ${isLocked
+                ? "bg-gray-300 dark:bg-gray-700 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600 text-white"}
+            `}
             onClick={() => onSelect("completed")}
           >
             Completed
           </button>
 
           <button
-            className="py-2 rounded-lg
-                       bg-red-500 hover:bg-red-600
-                       text-white font-medium
-                       transition"
+            disabled={isLocked}
+            className={`py-2 rounded-lg font-medium transition
+              ${isLocked
+                ? "bg-gray-300 dark:bg-gray-700 cursor-not-allowed"
+                : "bg-red-500 hover:bg-red-600 text-white"}
+            `}
             onClick={() => onSelect("not_completed")}
           >
             Not Completed
@@ -57,15 +70,17 @@ export default function DayModal({ date, onClose, onSelect }) {
                        transition"
             onClick={onClose}
           >
-            Cancel
+            Close
           </button>
         </div>
 
-        {/* ⌨️ Hint */}
-        <p className="mt-4 text-xs text-center
-                      text-gray-400 dark:text-gray-500">
-          Press Cancel to close
-        </p>
+        {/* 🔒 Hint */}
+        {isLocked && (
+          <p className="mt-4 text-xs text-center
+                        text-gray-400 dark:text-gray-500">
+            Editing is disabled after 14 days
+          </p>
+        )}
       </div>
     </div>
   );

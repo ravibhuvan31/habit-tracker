@@ -7,18 +7,21 @@ import DayModal from "./DayModal";
 
 export default function Calendar({ pairId, partnerId }) {
   const today = new Date();
+
   const [selectedDate, setSelectedDate] = useState(null);
   const [statusMap, setStatusMap] = useState({});
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("theme") === "dark"
   );
 
+  /* 📆 Month navigation state */
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+
   const userId = auth.currentUser?.uid;
   if (!userId) return null;
 
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const days = getMonthDays(year, month);
+  const days = getMonthDays(currentYear, currentMonth);
 
   /* 🌙 Dark mode effect */
   useEffect(() => {
@@ -40,7 +43,17 @@ export default function Calendar({ pairId, partnerId }) {
     return () => unsub();
   }, [pairId]);
 
+  /* 🔒 14-day lock check */
+  const isLocked = (date) => {
+    const diff =
+      (today.setHours(0,0,0,0) - date.setHours(0,0,0,0)) /
+      (1000 * 60 * 60 * 24);
+    return diff > 14;
+  };
+
   const handleSelect = async (status) => {
+    if (!selectedDate || isLocked(selectedDate)) return;
+
     const dateKey = getLocalDateKey(selectedDate);
 
     await setDoc(
@@ -48,8 +61,8 @@ export default function Calendar({ pairId, partnerId }) {
       {
         [dateKey]: {
           ...(statusMap[dateKey] || {}),
-          [userId]: status,
-        },
+          [userId]: status
+        }
       },
       { merge: true }
     );
@@ -57,6 +70,7 @@ export default function Calendar({ pairId, partnerId }) {
     setSelectedDate(null);
   };
 
+  /* 🎨 Colors */
   const myColor = (status) =>
     status === "completed"
       ? "bg-blue-500"
@@ -71,16 +85,41 @@ export default function Calendar({ pairId, partnerId }) {
       ? "bg-red-500"
       : "bg-gray-300 dark:bg-gray-600";
 
+  /* ⬅➡ Month navigation */
+  const prevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(y => y - 1);
+    } else {
+      setCurrentMonth(m => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(y => y + 1);
+    } else {
+      setCurrentMonth(m => m + 1);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto text-gray-900 dark:text-gray-100">
 
       {/* 🔝 Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">
-          {today.toLocaleString("default", { month: "long" })} {year}
-        </h2>
+        <div className="flex items-center gap-3">
+          <button onClick={prevMonth} className="px-2">◀</button>
+          <h2 className="text-xl font-semibold">
+            {new Date(currentYear, currentMonth).toLocaleString("default", {
+              month: "long"
+            })}{" "}
+            {currentYear}
+          </h2>
+          <button onClick={nextMonth} className="px-2">▶</button>
+        </div>
 
-        {/* 🌗 Dark mode toggle */}
         <button
           onClick={() => setDarkMode(!darkMode)}
           className="px-3 py-1 text-sm rounded border
@@ -100,6 +139,7 @@ export default function Calendar({ pairId, partnerId }) {
         <LegendItem color="bg-purple-500" label="Partner – Completed" />
         <LegendItem color="bg-red-500" label="Not Completed" />
         <LegendItem color="bg-gray-300 dark:bg-gray-600" label="Pending" />
+        <LegendItem color="bg-gray-500" label="Locked (older than 14 days)" />
       </div>
 
       {/* 📅 Calendar Grid */}
@@ -109,6 +149,7 @@ export default function Calendar({ pairId, partnerId }) {
 
           const key = getLocalDateKey(date);
           const dayData = statusMap[key] || {};
+          const locked = isLocked(date);
 
           const myStatus = dayData[userId];
           const partnerStatus = partnerId ? dayData[partnerId] : null;
@@ -116,14 +157,16 @@ export default function Calendar({ pairId, partnerId }) {
           return (
             <div
               key={idx}
-              onClick={() => !isFuture(date) && setSelectedDate(date)}
+              onClick={() =>
+                !isFuture(date) && !locked && setSelectedDate(date)
+              }
               className={`
-                h-28 rounded-lg p-2 flex flex-col cursor-pointer
+                h-28 rounded-lg p-2 flex flex-col
                 border border-gray-200 dark:border-gray-700
                 bg-white dark:bg-gray-900
-                hover:ring-2 hover:ring-blue-400
                 transition
                 ${isToday(date) ? "ring-2 ring-blue-500" : ""}
+                ${locked ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:ring-2 hover:ring-blue-400"}
                 ${isFuture(date) ? "opacity-40 pointer-events-none" : ""}
               `}
             >
@@ -150,7 +193,6 @@ export default function Calendar({ pairId, partnerId }) {
   );
 }
 
-/* 🧩 Small legend component */
 function LegendItem({ color, label }) {
   return (
     <div className="flex items-center gap-2">
